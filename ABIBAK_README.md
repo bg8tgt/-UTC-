@@ -104,7 +104,7 @@ source_code/
 ## 天气 API 配置
 
 使用高德天气 REST API，密钥和城市代码定义在 `weather_manager.h` 中：
-- API Key: `226bf59672f9c3d8702635a901d68ed8`
+- API Key: `226bxxx*************`
 - 城市编码: `532625`
 - 更新间隔: 30分钟
 
