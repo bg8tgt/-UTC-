@@ -103,7 +103,7 @@ source_code/
 | Preferences | NVS 存储 (WiFi/标题) |
 | SPI | XPT2046 触摸驱动 |
 
-## 天气 API 配置
+## 天气 API 配置需要切换你的API和城市代码
 
 使用高德天气 REST API，密钥和城市代码定义在 `weather_manager.h` 中：
 - API Key: `226bf59672f9c3d8702635a901d68ed8`
