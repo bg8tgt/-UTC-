@@ -3,11 +3,10 @@
 #include <WiFiClient.h>
 #include <HTTPClient.h>
 #include <TFT_eSPI.h>
+#include "web_config.h"
 
 extern TFT_eSPI tft;
 
-#define WEATHER_API_KEY "226bf59672f9c3d8702635a901d68ed8"
-#define WEATHER_CITY "532625"
 #define WEATHER_UPDATE_INTERVAL 1800000  // 30 minutes
 
 struct WeatherData {
@@ -124,14 +123,72 @@ static String jsonFieldRaw(const String& json, const char* key, int fromIdx = 0)
   return json.substring(idx, end);
 }
 
+void altitudeFetch() {
+  if (!WiFi.isConnected()) return;
+  if (weather_altitude > 0) return;
+
+  HTTPClient http;
+
+  // Step 1: Use Amap district API to get city center coordinates
+  String url1 = "https://restapi.amap.com/v3/config/district?key=" + weather_api_key
+                + "&keywords=" + weather_city + "&subdistrict=0&output=JSON";
+  http.begin(url1);
+  int code1 = http.GET();
+
+  float lat = 0, lng = 0;
+  if (code1 == 200) {
+    String resp = http.getString();
+    String status = jsonField(resp, "status");
+    if (status == "1") {
+      String center = jsonField(resp, "center");
+      int comma = center.indexOf(',');
+      if (comma > 0) {
+        lng = center.substring(0, comma).toFloat();
+        lat = center.substring(comma + 1).toFloat();
+      }
+    }
+  }
+  http.end();
+
+  if (lat == 0 && lng == 0) {
+    Serial.println("Altitude: failed to get city center");
+    return;
+  }
+
+  Serial.println("Altitude: city center lng=" + String(lng, 4) + " lat=" + String(lat, 4));
+
+  // Step 2: Use Open Elevation API to get altitude
+  String url2 = "https://api.open-elevation.com/api/v1/lookup?locations=" + String(lat, 6) + "," + String(lng, 6);
+  http.begin(url2);
+  int code2 = http.GET();
+
+  if (code2 == 200) {
+    String resp = http.getString();
+    String elevStr = jsonFieldRaw(resp, "elevation");
+    if (elevStr.length() > 0) {
+      int elev = (int)(elevStr.toFloat() + 0.5);
+      if (elev < 0) elev = 0;
+      weather_altitude_save(elev);
+      Serial.println("Altitude: " + String(elev) + "m");
+      http.end();
+      return;
+    }
+  }
+  http.end();
+  Serial.println("Altitude: query failed");
+}
+
 void weatherFetch() {
   if (!WiFi.isConnected()) return;
   if (_weatherFetching) return;
   _weatherFetching = true;
 
+  // Auto-query altitude if not yet done
+  altitudeFetch();
+
   HTTPClient http;
   String url = "https://restapi.amap.com/v3/weather/weatherInfo?city=" 
-               + String(WEATHER_CITY) + "&key=" + String(WEATHER_API_KEY) + "&extensions=all&output=JSON";
+               + weather_city + "&key=" + weather_api_key + "&extensions=all&output=JSON";
   
   Serial.println("Fetching weather...");
   http.begin(url);
@@ -204,7 +261,7 @@ void weatherFetch() {
       
       // Also fetch live weather for humidity
       String url2 = "https://restapi.amap.com/v3/weather/weatherInfo?city=" 
-                     + String(WEATHER_CITY) + "&key=" + String(WEATHER_API_KEY) + "&extensions=base&output=JSON";
+                     + weather_city + "&key=" + weather_api_key + "&extensions=base&output=JSON";
       http.begin(url2);
       int code2 = http.GET();
       if (code2 == 200) {
@@ -240,6 +297,13 @@ bool weatherNeedsUpdate() {
   if (!_weather.valid) return true;
   if (millis() - _lastWeatherFetch > WEATHER_UPDATE_INTERVAL) return true;
   return false;
+}
+
+void weatherInvalidate() {
+  _weather.valid = false;
+  _weather.current.valid = false;
+  _weatherFetching = false;
+  _lastWeatherFetch = 0;
 }
 
 // Get weather icon based on weather text
@@ -323,7 +387,7 @@ void drawWeatherPage(bool forceRedraw) {
     tft.setTextSize(1);
     tft.setTextDatum(TL_DATUM);
     tft.setTextColor(tft.color565(100,100,100));
-    tft.drawString("1314m", altX + 34, 46);
+    tft.drawString(String(weather_altitude) + "m", altX + 34, 46);
     
     // Weather description text
     tft.setTextFont(2);

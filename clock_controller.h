@@ -502,17 +502,18 @@ public:
           swipeLastX = tx;
           swipeAccumX = 0;
           swipeCommitted = 0;
+          lastTouchMs = millis();
           Serial.printf("START: x=%d y=%d\n", tx, ty);
         } else {
           int dx = tx - swipeLastX;
-          if (abs(dx) < 40) {
+          // Filter out tiny movements (touchscreen noise)
+          if (abs(dx) >= 2 && abs(dx) < 40) {
             swipeAccumX += dx;
           }
           swipeLastX = tx;
           
-          // IMMEDIATE COMMIT: trigger action as soon as direction detected
-          // No need to wait for finger release - avoids false-release issues
-          if (swipeCommitted == 0 && abs(swipeAccumX) > 15) {
+          // Require larger threshold to avoid mis-detection
+          if (swipeCommitted == 0 && abs(swipeAccumX) > 40) {
             int dir = (swipeAccumX > 0) ? 1 : -1;
             Serial.printf("SWIPE: dir=%d accum=%d page=%d\n", dir, swipeAccumX, currentPage);
             inSwipe = false;
@@ -545,7 +546,8 @@ public:
     // True release - process tap only (swipe already handled above)
     inSwipe = false;
     int totalDX = swipeLastX - swipeStartX;
-    if (abs(totalDX) < 15) {
+    if (abs(totalDX) < 30) {
+      // Tap detection - require longer press to avoid swipe mis-triggering tap
       if (currentPage == 0) {
         if (swipeStartX >= 260 && swipeStartY < 50) return 1;
         if (swipeStartY > 200) return 5;

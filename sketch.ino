@@ -45,6 +45,7 @@ void setup() {
   lastTouchTime = millis();
   clockCtrl.begin();
   title_load();
+  weather_config_load();  // Load weather API config
   clockCtrl.setupWiFi();
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("WiFi connected!");

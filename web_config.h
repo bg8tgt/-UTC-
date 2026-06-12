@@ -1,6 +1,7 @@
 #pragma once
 #include <WiFi.h>
 #include <WebServer.h>
+#include <Preferences.h>
 #include <TFT_eSPI.h>
 #include "simple_wifi_manager.h"
 
@@ -11,13 +12,51 @@ WebServer webServer(80);
 const char apSSID[] = "BG8TGT_Setup";
 const char apPass[] = "12345678";
 
+// Weather config storage
+String weather_api_key = "226bf59672f9c3d8702635a901d68ed8";
+String weather_city = "532625";
+int weather_altitude = 0;  // 0 = not queried yet
+
+void weather_config_load() {
+  Preferences prefs;
+  prefs.begin("weather_cfg", false);
+  weather_api_key = prefs.getString("api_key", "226bf59672f9c3d8702635a901d68ed8");
+  weather_city = prefs.getString("city", "532625");
+  weather_altitude = prefs.getInt("altitude", 0);
+  prefs.end();
+}
+
+void weather_config_save(const String& apiKey, const String& city) {
+  weather_api_key = apiKey;
+  weather_city = city;
+  weather_altitude = 0;  // reset altitude, will re-query
+  Preferences prefs;
+  prefs.begin("weather_cfg", false);
+  prefs.putString("api_key", apiKey);
+  prefs.putString("city", city);
+  prefs.putInt("altitude", 0);
+  prefs.end();
+  // Invalidate old weather data to force refresh with new config
+  extern void weatherInvalidate();
+  weatherInvalidate();
+}
+
+void weather_altitude_save(int alt) {
+  weather_altitude = alt;
+  Preferences prefs;
+  prefs.begin("weather_cfg", false);
+  prefs.putInt("altitude", alt);
+  prefs.end();
+}
+
 const char htmlPage[] PROGMEM = 
 "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
 "<meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1'>"
-"<title>BG8TGT WiFi Setup</title>"
+"<title>BG8TGT Setup</title>"
 "<style>*{box-sizing:border-box;margin:0;padding:0}"
 "body{font-family:-apple-system,Arial;background:#1a1a2e;color:#fff;padding:15px}"
 "h1{color:#00d4ff;text-align:center;font-size:20px;margin:10px 0}"
+"h2{color:#ffd700;text-align:center;font-size:16px;margin:15px 0 8px}"
 ".container{max-width:400px;margin:auto;background:#16213e;padding:15px;border-radius:10px}"
 "button{width:100%;padding:14px;background:#00d4ff;border:none;border-radius:5px;color:#000;font-weight:bold;cursor:pointer;margin:8px 0;font-size:16px}"
 "button:hover{background:#00a8cc}"
@@ -27,12 +66,14 @@ const char htmlPage[] PROGMEM =
 ".wifi-item.selected{background:#1a6a3e;border:2px solid #00ff00}"
 ".rssi{color:#aaa;font-size:11px}"
 "input{width:100%;padding:12px;margin:6px 0;border:1px solid #0f3460;border-radius:5px;background:#1a1a2e;color:#fff;font-size:16px}"
+"label{color:#aaa;font-size:13px;margin:4px 0;display:block}"
 "#status{text-align:center;margin-top:10px;font-size:14px;color:#aaa}"
 ".btn-row{display:flex;gap:8px}"
 ".btn-row button{flex:1}"
+".section{border-top:1px solid #0f3460;padding-top:10px;margin-top:10px}"
 "</style></head>"
 "<body><div class='container'>"
-"<h1>BG8TGT WiFi Setup</h1>"
+"<h1>BG8TGT Setup</h1>"
 "<button id='scanBtn' onclick='scanWiFi()'>Scan WiFi</button>"
 "<div id='list'></div>"
 "<div id='form' style='display:none'>"
@@ -43,8 +84,21 @@ const char htmlPage[] PROGMEM =
 "<button onclick='cancelSelect()' style='background:#e74c3c'>Cancel</button>"
 "<button onclick='connect()' style='background:#27ae60'>Connect</button>"
 "</div></div>"
-"<div id='status'></div></div>"
+"<div id='status'></div>"
+"<div class='section'>"
+"<h2>Weather Config</h2>"
+"<label>Amap API Key:</label>"
+"<input type='text' id='apiKey' placeholder='Amap Weather API Key'>"
+"<label>City Code:</label>"
+"<input type='text' id='cityCode' placeholder='City Adcode (e.g. 532625)'>"
+"<button onclick='saveWeather()' style='background:#ffd700'>Save Weather Config</button>"
+"</div></div>"
 "<script>"
+"function loadWeather(){fetch('/weather_config').then(r=>r.json()).then(d=>{"
+"document.getElementById('apiKey').value=d.api_key||'';"
+"document.getElementById('cityCode').value=d.city||'';"
+"}).catch(e=>{});}"
+"loadWeather();"
 "function scanWiFi(){"
 "var b=document.getElementById('scanBtn');"
 "b.disabled=true;b.textContent='Scanning...';"
@@ -94,6 +148,15 @@ const char htmlPage[] PROGMEM =
 "}).catch(function(e){"
 "document.getElementById('status').innerHTML='Connection error. Please try again.';"
 "});}"
+"function saveWeather(){"
+"var k=document.getElementById('apiKey').value;"
+"var c=document.getElementById('cityCode').value;"
+"if(!k||!c){alert('Please fill both fields');return;}"
+"fetch('/save_weather?api_key='+encodeURIComponent(k)+'&city='+encodeURIComponent(c))"
+".then(r=>r.text()).then(t=>{"
+"if(t==='OK'){document.getElementById('status').innerHTML='Weather config saved!';}"
+"else{document.getElementById('status').innerHTML='Save failed!';}"
+"}).catch(e=>{document.getElementById('status').innerHTML='Save error!';});}"
 "</script></body></html>";
 
 void startAPMode() {
@@ -205,6 +268,34 @@ void startAPMode() {
       tft.drawString("Failed!", 160, 100);
       delay(2000);
     }
+  });
+  
+  // Weather config API - get current config
+  webServer.on("/weather_config", []() {
+    String json = "{\"api_key\":\"" + weather_api_key + "\",\"city\":\"" + weather_city + "\"}";
+    webServer.send(200, "application/json", json);
+  });
+  
+  // Weather config API - save new config
+  webServer.on("/save_weather", []() {
+    String apiKey = webServer.arg("api_key");
+    String city = webServer.arg("city");
+    
+    if (apiKey.length() == 0 || city.length() == 0) {
+      webServer.send(400, "text/plain", "Missing parameters");
+      return;
+    }
+    
+    weather_config_save(apiKey, city);
+    
+    // Show success on screen
+    tft.fillRect(0, 150, 320, 40, TFT_WHITE);
+    tft.setTextColor(TFT_GREEN);
+    tft.setTextDatum(TC_DATUM);
+    tft.setTextFont(2);
+    tft.drawString("Weather Config Saved!", 160, 160);
+    
+    webServer.send(200, "text/plain", "OK");
   });
   
   // Handle all other requests - redirect to captive portal
