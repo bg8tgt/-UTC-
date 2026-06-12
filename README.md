@@ -1,8 +1,5 @@
 # BG8TGT 智能时钟 - ESP32
-<img width="602" height="450" alt="64578ee79770208cf3ed4aa10e756a9a" src="https://github.com/user-attachments/assets/0d96db9e-ed10-48ef-99e5-bcc45594d565" />
-<img width="602" height="450" alt="4ef3a95b1d38805c35170463776e140a" src="https://github.com/user-attachments/assets/2594120e-04bc-4657-94ca-9582c938e564" />
-<img width="602" height="450" alt="image" src="https://github.com/user-attachments/assets/1043b1ce-86e7-457d-a373-bab30098547c" />
-<img width="602" height="450" alt="744f74bd-a284-42a4-be89-813e43c87811" src="https://github.com/user-attachments/assets/91e8ea72-8612-4a5d-9797-c97d5a7b7b8d" />
+
 
 ## 硬件配置
 - **MCU**: ESP32
@@ -72,3 +69,7 @@ Arduino IDE / PlatformIO，需安装库：
 - NTPClient
 - WiFi (ESP32内置)
 - WebServer (ESP32内置)
+<img width="602" height="450" alt="64578ee79770208cf3ed4aa10e756a9a" src="https://github.com/user-attachments/assets/0d96db9e-ed10-48ef-99e5-bcc45594d565" />
+<img width="602" height="450" alt="4ef3a95b1d38805c35170463776e140a" src="https://github.com/user-attachments/assets/2594120e-04bc-4657-94ca-9582c938e564" />
+<img width="602" height="450" alt="image" src="https://github.com/user-attachments/assets/1043b1ce-86e7-457d-a373-bab30098547c" />
+<img width="602" height="450" alt="744f74bd-a284-42a4-be89-813e43c87811" src="https://github.com/user-attachments/assets/91e8ea72-8612-4a5d-9797-c97d5a7b7b8d" />
