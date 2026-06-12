@@ -1,6 +1,6 @@
 # BG8TGT 智能时钟 - ESP32
-<img width="3840" height="2160" alt="64578ee79770208cf3ed4aa10e756a9a" src="https://github.com/user-attachments/assets/0d96db9e-ed10-48ef-99e5-bcc45594d565" />
-<img width="3840" height="2160" alt="64578ee79770208cf3ed4aa10e756a9a" src="https://github.com/user-attachments/assets/a8d11a6f-d395-4ebf-9d37-86e27b1e6c5d" />
+<img width="602" height="450" alt="64578ee79770208cf3ed4aa10e756a9a" src="https://github.com/user-attachments/assets/0d96db9e-ed10-48ef-99e5-bcc45594d565" />
+<img width="602" height="450" alt="64578ee79770208cf3ed4aa10e756a9a" src="https://github.com/user-attachments/assets/a8d11a6f-d395-4ebf-9d37-86e27b1e6c5d" />
 <img width="602" height="450" alt="744f74bd-a284-42a4-be89-813e43c87811" src="https://github.com/user-attachments/assets/91e8ea72-8612-4a5d-9797-c97d5a7b7b8d" />
 
 ## 硬件配置
