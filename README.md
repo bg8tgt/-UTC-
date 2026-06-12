@@ -42,7 +42,7 @@
 | weather_cfg | api_key, city, altitude | 天气配置+海拔 |
 
 ## API依赖
-
+高德天气API文档https://lbs.amap.com/api/webservice/guide/api/weatherinfo
 | API | 用途 | URL |
 |-----|------|-----|
 | 高德天气 | 天气预报+实况 | restapi.amap.com/v3/weather/weatherInfo |
